@@ -1,0 +1,25 @@
+{
+  "name": "local-agent",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node src/parse.test.mjs",
+    "start": "npm run build && node server.mjs",
+    "eval:tools": "node evals/tools.mjs",
+    "eval:agent": "node evals/agent.mjs"
+  },
+  "type": "module",
+  "dependencies": {
+    "@earendil-works/chord": "1.5.2",
+    "@earendil-works/pi-ai": "1.5.2",
+    "@earendil-works/pi-durable": "1.5.2",
+    "@huggingface/transformers": "4.3.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "puppeteer-core": "^24.43.1"
+  },
+  "private": true,
+  "description": "An AI agent that runs entirely in the browser: Qwen3.5-4B on WebGPU, pi-durable, and a Chrome extension for tabs.",
+  "license": "MIT"
+}

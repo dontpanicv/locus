@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Agent</title>
+<link rel="icon" href="data:,">
+<style>
+	/* Design tokens. Light only. */
+	:root {
+		color-scheme: light;
+		--gallery-white: #ffffff;
+		--studio-mist: #f5f5f7;
+		--hairline: #d6d6d6;
+		--control-gray: #e6e6e8;
+		--ink: #1d1d1f;
+		--slate: #707070;
+		--steel: #86868b;
+		--apple-blue: #0066cc;
+		--pricing-blue: #0071e3;
+		--launch-orange: #b64400;
+		--track: rgba(210, 210, 215, 0.64);
+		--display: "SF Pro Display", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Inter, Arial, sans-serif;
+		--text: "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Inter, Arial, sans-serif;
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0; background: var(--gallery-white); color: var(--ink);
+		font: 400 17px/1.47 var(--text); letter-spacing: -0.374px;
+		display: flex; flex-direction: column; height: 100dvh;
+		-webkit-font-smoothing: antialiased;
+	}
+	button { font: inherit; letter-spacing: inherit; color: inherit; cursor: pointer; }
+	button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--pricing-blue); outline-offset: 2px; }
+
+	/* Product local navigation */
+	.nav {
+		height: 52px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 22px;
+		background: rgba(255, 255, 255, 0.8); backdrop-filter: saturate(180%) blur(20px);
+		border-bottom: 1px solid var(--hairline);
+	}
+	.nav-title { font: 600 19px/1.21 var(--display); letter-spacing: 0.228px; margin: 0; white-space: nowrap; }
+	.status {
+		flex: 1; min-width: 0; color: var(--slate); font-size: 12px; line-height: 1.33; letter-spacing: -0.12px;
+		white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+	}
+	.pill {
+		border-radius: 9999px; padding: 5px 15px; font-size: 12px; line-height: 16px; letter-spacing: -0.12px;
+		border: 1px solid transparent; background: transparent; white-space: nowrap;
+	}
+	.pill-outline { border-color: var(--steel); color: var(--ink); }
+	.pill-outline:hover { border-color: var(--ink); }
+	.pill-blue { background: var(--pricing-blue); color: #fff; }
+	.pill-blue:hover { background: #0077ed; }
+	.pill-blue:disabled { background: var(--control-gray); color: var(--steel); cursor: default; }
+
+	/* Scrolling transcript */
+	main { flex: 1; overflow-y: auto; }
+	.column { max-width: 720px; margin: 0 auto; padding: 0 22px; }
+	.hero { text-align: center; padding: 76px 0 48px; }
+	.hero[hidden] { display: none; }
+	.kicker { font: 600 21px/1 var(--display); letter-spacing: 0.231px; margin: 0 0 16px; }
+	.display { font: 600 clamp(40px, 7vw, 64px)/1.05 var(--display); letter-spacing: -0.9px; margin: 0 auto; text-wrap: balance; }
+	.lede { color: var(--slate); margin: 20px auto 0; max-width: 36em; }
+	#log { display: flex; flex-direction: column; gap: 20px; padding: 32px 0 40px; }
+	#log:empty { padding: 0; }
+	.msg { white-space: pre-wrap; overflow-wrap: anywhere; }
+	.user { align-self: flex-end; max-width: 80%; background: var(--studio-mist); border-radius: 20px; padding: 10px 18px; }
+	.assistant { align-self: flex-start; max-width: 100%; }
+	.thinking { color: var(--steel); }
+	.note { align-self: center; color: var(--steel); font-size: 12px; line-height: 16px; letter-spacing: -0.12px; }
+	.error { color: var(--launch-orange); font-size: 12px; font-weight: 600; line-height: 16px; letter-spacing: -0.12px; }
+	.tool { align-self: flex-start; max-width: 100%; font-size: 12px; line-height: 16px; letter-spacing: -0.12px; }
+	.tool summary {
+		display: inline-flex; gap: 8px; align-items: baseline; max-width: 100%; list-style: none; cursor: pointer;
+		border-radius: 9999px; padding: 5px 12px; box-shadow: 0 0 0 1px var(--control-gray); color: var(--slate);
+	}
+	.tool summary::-webkit-details-marker { display: none; }
+	.tool summary:hover { box-shadow: 0 0 0 1px var(--steel); }
+	.tool-name { color: var(--ink); font-weight: 600; white-space: nowrap; }
+	.tool-args { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+	.tool.running .tool-name::after { content: " · running"; color: var(--steel); font-weight: 400; }
+	.tool.failed .tool-name { color: var(--launch-orange); }
+	.tool-result {
+		margin: 8px 0 0; padding: 16px 20px; background: var(--studio-mist); border-radius: 20px; color: var(--slate);
+		white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font: inherit;
+	}
+
+	/* Composer */
+	.dock { flex: none; padding: 8px 0 20px; background: var(--gallery-white); }
+	.examples { display: flex; gap: 4px 20px; flex-wrap: wrap; padding: 4px 0 12px; }
+	.examples button { border: 0; background: none; padding: 0; color: var(--apple-blue); font-size: 14px; line-height: 1.29; letter-spacing: -0.224px; }
+	.examples button:hover { text-decoration: underline; }
+	.composer { display: flex; gap: 10px; align-items: center; }
+	#input {
+		flex: 1; min-width: 0; height: 44px; padding: 0 22px; border-radius: 980px; border: 1px solid var(--steel);
+		background: var(--gallery-white); color: var(--ink); font: inherit; letter-spacing: inherit;
+	}
+	#input::placeholder { color: var(--steel); }
+	#input:focus { outline: none; border-color: var(--pricing-blue); box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2); }
+	#send { height: 44px; padding: 0 20px; font-size: 14px; letter-spacing: -0.224px; }
+	/* Onboarding: shown on the first visit instead of the chat */
+	body.onboarding #scroller, body.onboarding .dock, body.onboarding #clear { display: none; }
+	body:not(.onboarding) #onboarding { display: none; }
+	#onboarding { flex: 1; overflow-y: auto; }
+	#onboarding section { padding: 64px 0 8px; }
+	#onboarding section[hidden] { display: none; }
+	#onboarding [data-step="welcome"] { text-align: center; }
+	#onboarding h2:focus { outline: none; }
+	.title { font: 600 clamp(32px, 5vw, 48px)/1.08 var(--display); letter-spacing: -0.5px; margin: 0 0 20px; text-wrap: balance; }
+	#onboarding a { color: var(--apple-blue); }
+	#onboarding a.pill { color: var(--ink); text-decoration: none; display: inline-block; }
+	code { font: 0.88em ui-monospace, "SF Mono", Menlo, monospace; background: var(--studio-mist); padding: 2px 6px; border-radius: 6px; }
+	.checks { list-style: none; padding: 0; margin: 32px auto 0; max-width: 36em; text-align: left; }
+	.checks li { padding-left: 1.4em; text-indent: -1.4em; margin: 6px 0; }
+	.checks li::before { content: "·  "; color: var(--steel); }
+	.checks .ok::before { content: "✓  "; color: var(--ink); }
+	.checks .warn, .checks .bad { color: var(--launch-orange); }
+	.checks .warn::before { content: "!  "; }
+	.checks .bad::before { content: "✕  "; }
+	.caution { background: var(--studio-mist); border-radius: 20px; padding: 16px 20px; font-size: 14px; line-height: 1.43; letter-spacing: -0.224px; }
+	.steps { padding-left: 1.3em; }
+	.steps li { margin: 12px 0; }
+	.state { font-weight: 600; color: var(--slate); }
+	.state.ok { color: var(--ink); }
+	.state.ok::before { content: "✓ "; }
+	.fine { color: var(--slate); font-size: 12px; line-height: 16px; letter-spacing: -0.12px; }
+	.facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: 24px 0; }
+	.facts dt { color: var(--slate); }
+	.facts dd { margin: 0; }
+	.actions { margin-top: 32px; display: flex; gap: 12px; justify-content: inherit; }
+	[data-step="welcome"] .actions { justify-content: center; }
+	.big { height: 44px; padding: 0 22px; font-size: 17px; letter-spacing: -0.374px; }
+	progress { display: block; width: 100%; height: 8px; margin-top: 24px; appearance: none; border: 0; border-radius: 9999px; background: var(--control-gray); overflow: hidden; }
+	progress[hidden] { display: none; }
+	progress::-webkit-progress-bar { background: var(--control-gray); }
+	progress::-webkit-progress-value { background: var(--pricing-blue); transition: width 0.2s; }
+	progress::-moz-progress-bar { background: var(--pricing-blue); }
+	.legal { color: var(--steel); font-size: 12px; line-height: 16px; letter-spacing: -0.12px; text-align: center; padding: 40px 0 24px; }
+	.nav a.pill { color: var(--ink); text-decoration: none; }
+
+	@media (max-width: 520px) {
+		.nav { padding: 0 16px; gap: 10px; }
+		.column { padding: 0 16px; }
+		.hero { padding: 48px 0 32px; }
+		#send { padding: 0 16px; }
+	}
+</style>
+</head>
+<body>
+<header class="nav">
+	<h1 class="nav-title">Local Agent</h1>
+	<span id="status" class="status" role="status">Starting…</span>
+	<a class="pill pill-outline" href="licenses.txt">Licenses</a>
+	<button id="clear" class="pill pill-outline" type="button">Clear</button>
+</header>
+<main id="onboarding">
+	<div class="column">
+		<section data-step="welcome" hidden>
+			<p class="kicker">Local Agent</p>
+			<h2 class="display" tabindex="-1">An AI agent that runs in your browser.</h2>
+			<p class="lede">It chats, reads the web and works in your tabs for you. The model runs on your graphics card and the chat is kept in this browser, so what you type is not sent to any AI service.</p>
+			<ul id="requirements" class="checks"><li>Checking your browser…</li></ul>
+			<div class="actions"><button id="start" class="pill pill-blue big" type="button" disabled>Get started</button></div>
+			<p class="fine" style="margin-top: 32px">Setup downloads this page from GitHub Pages, the model from Hugging Face and the ONNX Runtime from jsDelivr, and each of them sees your IP address. After that, the only requests are the pages and searches the agent makes for you.</p>
+		</section>
+
+		<section data-step="extension" hidden>
+			<p class="kicker">Step 1 of 2</p>
+			<h2 class="title" tabindex="-1">Add the browser extension</h2>
+			<p>On its own the agent can tell the time and your location, describe your device, send notifications and copy text. With the Local Agent Bridge extension it can also list, open and read your tabs, fetch pages, search the web, and click and type on pages for you.</p>
+			<p class="caution"><strong>Before you install it:</strong> the extension lets this page control any tab through Chrome's debugging protocol, including sites you are signed in to. Text on a web page can mislead the agent, so watch what it does on sites that matter, and remove the extension when you don't need it. While the agent works in a tab, Chrome shows a bar saying the extension started debugging the browser.</p>
+			<ol class="steps">
+				<li><a class="pill pill-outline" href="local-agent-bridge.zip" download>Download the extension</a> and unzip it.</li>
+				<li>Open <code>chrome://extensions</code> in a new tab <button id="copy-url" class="pill pill-outline" type="button">Copy address</button> (in Edge, <code>edge://extensions</code>).</li>
+				<li>Turn on <strong>Developer mode</strong> in the top right corner.</li>
+				<li>Click <strong>Load unpacked</strong> and pick the <code>extension</code> folder from the zip.</li>
+			</ol>
+			<p id="bridge-state" class="state" role="status">Waiting for the extension…</p>
+			<p class="fine">The extension runs only a fixed set of commands, only for this site and localhost. Its code is in the <a href="https://github.com/dontpanicv/local-agent/tree/main/extension">extension folder</a> of the repository. You can add it later; this page finds it when you reload.</p>
+			<div class="actions"><button id="to-model" class="pill pill-blue big" type="button">Continue without it</button></div>
+		</section>
+
+		<section data-step="model" hidden>
+			<p class="kicker">Step 2 of 2</p>
+			<h2 class="title" tabindex="-1">Download the model</h2>
+			<p>The agent thinks with Qwen3.5-4B, an open language model. It downloads once, straight from Hugging Face, and stays in this browser's storage, so later visits start without downloading.</p>
+			<dl class="facts">
+				<dt>Model</dt><dd><a href="https://huggingface.co/Qwen/Qwen3.5-4B">Qwen3.5-4B</a> by the Qwen team, Alibaba Cloud</dd>
+				<dt>Files</dt><dd><a href="https://huggingface.co/onnx-community/Qwen3.5-4B-ONNX-OPT">ONNX conversion by onnx-community</a>, 4-bit weights</dd>
+				<dt>License</dt><dd><a href="https://huggingface.co/Qwen/Qwen3.5-4B/blob/main/LICENSE">Apache License 2.0</a></dd>
+				<dt>Source</dt><dd>huggingface.co, under the <a href="https://huggingface.co/terms-of-service">Hugging Face terms of service</a></dd>
+				<dt>Size</dt><dd>2.8 GB</dd>
+			</dl>
+			<p class="fine">By downloading it you agree to use the model under its license. Its answers can be wrong, so check what matters.</p>
+			<div class="actions"><button id="download" class="pill pill-blue big" type="button">Download model</button></div>
+			<progress id="progress" value="0" max="1" aria-label="Model download" hidden></progress>
+			<p id="progress-text" class="fine" role="status"></p>
+			<p id="download-error" class="error" role="alert"></p>
+		</section>
+
+		<p class="legal">Local Agent is open source under the MIT license · <a href="https://github.com/dontpanicv/local-agent">Source code</a> · <a href="licenses.txt">Third-party licenses</a></p>
+	</div>
+</main>
+<main id="scroller">
+	<div class="column">
+		<section id="hero" class="hero">
+			<p class="kicker">Local Agent</p>
+			<h2 class="display">Ask anything.<br>It stays in your browser.</h2>
+			<p class="lede">Qwen3.5 runs on your GPU, the chat is kept in IndexedDB, and the tools use browser APIs.</p>
+		</section>
+		<div id="log" aria-live="polite"></div>
+	</div>
+</main>
+<footer class="dock">
+	<div class="column">
+		<nav class="examples" aria-label="Example prompts">
+			<button type="button" data-prompt="What time is it and what time zone am I in?">Time</button>
+			<button type="button" data-prompt="Where am I right now?">Location</button>
+			<button type="button" data-prompt="Tell me about my device and battery.">Device</button>
+			<button type="button" data-prompt="How much storage is this app using?">Storage</button>
+			<button type="button" data-prompt="Send me a notification that says the demo works.">Notify</button>
+			<button type="button" data-prompt="Copy a short haiku about browsers to my clipboard.">Clipboard</button>
+			<button type="button" data-prompt="What tabs do I have open?">Tabs</button>
+			<button type="button" data-prompt="Search the web for WebGPU browser support and summarize the top result.">Search</button>
+		</nav>
+		<form id="form" class="composer">
+			<input id="input" autocomplete="off" placeholder="Ask something…" aria-label="Message">
+			<button id="send" class="pill pill-blue" disabled>Send</button>
+		</form>
+	</div>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>
