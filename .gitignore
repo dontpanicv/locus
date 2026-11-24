@@ -3,7 +3,7 @@ models/
 public/app.js
 public/app.js.map
 public/licenses.txt
-public/locus-bridge.zip
+public/*.zip
 public/fonts/
 evals/.build/
 evals/.cert/
