@@ -1,11 +1,11 @@
 {
 	"manifest_version": 3,
-	"name": "Local Agent Bridge",
-	"version": "0.3.0",
-	"description": "Lets the Local Agent page list, open, read and control tabs, and fetch web pages.",
+	"name": "Locus Bridge",
+	"version": "0.4.0",
+	"description": "Lets the Locus page list, open, read and control tabs, and fetch web pages.",
 	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9uWXr+/28ZY5G3+Q08vKlymAYJAbVMtd+XcVx6+/cmgN2clUMc8YsSPJEm8O7j5IFlU1k0OkAsI7a0puaatb9j49DxcT0T4vxLysnP4ZPZTaV7ELgrmTv05dKnTK9OVuuPsyBy5hCqvITnTn7fmt72qawLbdHjpXDd67BkWRWt7I/k5telXvUSVu16HaaH/x6xPX27O6XrIDQs7aXFbPwYUeY6xUwv2DLSq3iFJbHdZED9fb2vOwP7qdP4imsdiaY17TXjl2xlO7dW4j5jhzokWXBs6/KKj3UIjeb0PyDlC+IV8FxfgcnVD3My83dziviXI++vLMdrvmnXTkmbyOCQIDAQAB",
 	"permissions": ["tabs", "scripting", "debugger"],
 	"host_permissions": ["<all_urls>"],
 	"background": { "service_worker": "bridge.js" },
-	"externally_connectable": { "matches": ["https://dontpanicv.github.io/local-agent/*", "http://localhost/*", "http://127.0.0.1/*"] }
+	"externally_connectable": { "matches": ["https://locus.dontpanicv.com/*", "http://localhost/*", "http://127.0.0.1/*"] }
 }

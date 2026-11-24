@@ -1,4 +1,4 @@
-// Bridge between the Local Agent page and Chrome. Only pages listed in manifest "externally_connectable"
+// Bridge between the Locus page and Chrome. Only pages listed in manifest "externally_connectable"
 // can send messages here, and only the commands below run. The agent itself stays in the page.
 const MAX_BODY = 2_000_000; // characters; the page trims further for the model
 

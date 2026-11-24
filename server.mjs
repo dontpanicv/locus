@@ -36,4 +36,4 @@ http
 		if (req.method === "HEAD") return res.end();
 		createReadStream(file).pipe(res);
 	})
-	.listen(port, "127.0.0.1", () => console.log(`Local agent on http://localhost:${port}/`));
+	.listen(port, "127.0.0.1", () => console.log(`Locus on http://localhost:${port}/`));

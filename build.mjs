@@ -1,7 +1,7 @@
 // Builds the static site in public/: the bundle, the license texts of every package bundled into it, and the
-// extension as a zip for the onboarding to offer.
+// extension as a zip for the onboarding to offer, and the Inter font so the page loads nothing from font services.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { build } from "esbuild";
 
 const { metafile } = await build({
@@ -38,17 +38,21 @@ const sections = [...dirs].sort().map((dir) => {
 	}
 	return [`${pkg.name} ${pkg.version} (${license ?? "see below"})`, pkg.homepage ?? pkg.repository?.url ?? "", "", texts.join("\n\n")].join("\n");
 });
+const INTER = "node_modules/@fontsource-variable/inter";
+mkdirSync("public/fonts", { recursive: true });
+for (const subset of ["latin", "latin-ext"]) copyFileSync(`${INTER}/files/inter-${subset}-wght-normal.woff2`, `public/fonts/inter-${subset}.woff2`);
 const rule = `\n\n${"=".repeat(78)}\n\n`;
 writeFileSync(
 	"public/licenses.txt",
 	[
-		`Local Agent\n\n${readFileSync("LICENSE", "utf8").trim()}`,
+		`Locus\n\n${readFileSync("LICENSE", "utf8").trim()}`,
 		"Qwen3.5-4B (Apache License 2.0)\nhttps://huggingface.co/Qwen/Qwen3.5-4B/blob/main/LICENSE\n\nNot part of this site: the browser downloads the model from Hugging Face (onnx-community/Qwen3.5-4B-ONNX-OPT,\nan ONNX conversion of Qwen/Qwen3.5-4B). The full text of the Apache License 2.0 is in the @huggingface/transformers\nsection below. ONNX Runtime's wasm files come from jsDelivr and are covered by the onnxruntime-web section.",
+		`Inter ${JSON.parse(readFileSync(`${INTER}/package.json`, "utf8")).version} (SIL Open Font License 1.1), served from fonts/\nhttps://github.com/rsms/inter\n\n${readFileSync(`${INTER}/LICENSE`, "utf8").trim()}`,
 		`Packages bundled into app.js\n\n${sections.join(rule)}`,
 	].join(rule) + "\n",
 );
 
-rmSync("public/local-agent-bridge.zip", { force: true });
-execFileSync("zip", ["-q", "-r", "public/local-agent-bridge.zip", "extension", "-x", "*.DS_Store"]);
-if (!existsSync("public/local-agent-bridge.zip")) throw new Error("zip did not write the extension");
-console.log(`built public/: app.js, licenses.txt (${dirs.size} packages), local-agent-bridge.zip`);
+rmSync("public/locus-bridge.zip", { force: true });
+execFileSync("zip", ["-q", "-r", "public/locus-bridge.zip", "extension", "-x", "*.DS_Store"]);
+if (!existsSync("public/locus-bridge.zip")) throw new Error("zip did not write the extension");
+console.log(`built public/: app.js, licenses.txt (${dirs.size} packages), fonts, locus-bridge.zip`);

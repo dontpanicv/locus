@@ -1,8 +1,10 @@
-# Local Agent
+# locus.
 
-An AI agent that runs entirely in your browser. Qwen3.5-4B answers on your graphics card through WebGPU, every turn is kept in IndexedDB, and an optional Chrome extension lets the agent read and drive your tabs. There is no backend: the site is static files, and what you type is never sent to an AI service.
+**An AI agent that stays in one place: your browser, your GPU, your disk.**
 
-**Try it: https://dontpanicv.github.io/local-agent/** (Chrome or Edge, with a WebGPU graphics card that supports 16-bit floats)
+Locus is a chat agent that runs entirely in a browser tab. You ask it something, it answers, and it can use tools on the way: the time, your location, your device, notifications and the clipboard, and, with its Chrome extension, your tabs: it opens, reads, clicks and types on web pages for you. Qwen3.5-4B does the thinking on your graphics card through WebGPU, and every turn is kept in IndexedDB. There is no backend: the site is static files, and what you type is never sent to an AI service.
+
+**Try it: https://locus.dontpanicv.com** (Chrome or Edge, with a WebGPU graphics card that supports 16-bit floats)
 
 On the first visit the page walks you through setup:
 
@@ -10,11 +12,28 @@ On the first visit the page walks you through setup:
 2. **Extension (optional):** what it can do and how to load it unpacked.
 3. **Model:** its license and source, then a download button with a progress bar. 2.8 GB come straight from Hugging Face and stay in the browser's Cache Storage, so later visits open the chat at once.
 
+## Built with
+
+| Part | What it does here |
+|---|---|
+| [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) ([ONNX, 4-bit](https://huggingface.co/onnx-community/Qwen3.5-4B-ONNX-OPT)) | the language model |
+| [transformers.js](https://github.com/huggingface/transformers.js) 4 and [ONNX Runtime Web](https://onnxruntime.ai/) | run the model on WebGPU in the page |
+| [pi-durable](https://www.npmjs.com/package/@earendil-works/pi-durable) and [pi-ai](https://www.npmjs.com/package/@earendil-works/pi-ai) | the agent loop, kept in IndexedDB, and the model provider interface |
+| Browser APIs | the built-in tools: `Intl`, Geolocation, Battery, Storage, Notifications, Clipboard |
+| Chrome extension (Manifest V3) with `chrome.debugger` | tab control through the DevTools protocol |
+| [esbuild](https://esbuild.github.io/) | bundles `src/` into one `app.js` |
+| [Inter](https://rsms.me/inter/) | the typeface, served from this site |
+| [Cloudflare Pages](https://pages.cloudflare.com/) | hosts the static site |
+| [Puppeteer](https://pptr.dev/) | drives Chrome for the evals |
+| [Claude Code](https://claude.com/claude-code) | wrote most of the code with the author |
+
+The design is a Swiss grid: Inter, black rules, one red accent, and every conversation step numbered with its kind in the left column (`01 Request`, `02 Tool`, `03 Answer`).
+
 ## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph page["Page (static, GitHub Pages)"]
+  subgraph page["Page (static, Cloudflare Pages)"]
     UI["Chat UI<br>src/app.js"] --> H["pi-durable harness<br>agent loop"]
     H <--> DB[("IndexedDB<br>chat, runs, tool calls")]
     H --> P["pi-ai provider<br>src/local-provider.js"]
@@ -23,7 +42,7 @@ flowchart LR
     H --> TT["Tab tools<br>src/bridge-tools.js"]
   end
   TT -- "chrome.runtime.sendMessage" --> EXT
-  subgraph EXT["Extension: Local Agent Bridge"]
+  subgraph EXT["Extension: Locus Bridge"]
     B["extension/bridge.js"] --> CDP["chrome.debugger<br>(DevTools protocol)"]
     B --> TABS["chrome.tabs<br>fetch"]
   end
@@ -70,7 +89,7 @@ flowchart LR
 
 ## Privacy and safety
 
-- The model, the chat and the agent loop stay in your browser. The first visit fetches the page from GitHub Pages, the model from Hugging Face and the ONNX Runtime wasm from jsDelivr. After that, the only requests are the pages and searches the agent makes for you.
+- The model, the chat and the agent loop stay in your browser. The first visit fetches the page from Cloudflare Pages, the model from Hugging Face and the ONNX Runtime wasm from jsDelivr. After that, the only requests are the pages and searches the agent makes for you.
 - With the extension, the agent can control any tab, including sites you are signed in to, and text on a page can steer it. Watch it on sites that matter, and remove the extension when you don't need it.
 - A 4B model makes mistakes. Check its answers, and anything it says it did.
 
@@ -84,9 +103,18 @@ npm run eval:tools # every tool against fake sites, without the model (about 1 m
 npm run eval:agent # the real agent on 25 tasks (about 30 minutes); add words to pick some: -- linkedin
 ```
 
-`npm run build` (`build.mjs`) writes the bundle `public/app.js`, `public/licenses.txt` with the license of every package bundled into it, and `public/local-agent-bridge.zip`. The GitHub Actions workflow in `.github/workflows/pages.yml` runs the tests and the build, then publishes `public/` to GitHub Pages on every push to `main`.
+`npm run build` (`build.mjs`) writes the bundle `public/app.js`, `public/licenses.txt` with the license of every package bundled into it, the Inter font files in `public/fonts/`, and `public/locus-bridge.zip`. The GitHub Actions workflow in `.github/workflows/ci.yml` runs the tests and the build on every push and pull request.
 
-On localhost the page first looks for the model under `models/<model id>/` and falls back to Hugging Face. To skip the download, for example for the evals, put the repo's files there, at least the config and tokenizer files and `onnx/*_q4f16.onnx*`. For a local build, load `extension/` unpacked from `chrome://extensions`. To host the site anywhere other than this GitHub Pages address, add its origin to `externally_connectable` in `extension/manifest.json`.
+### Deploy
+
+The site is the `public/` folder on Cloudflare Pages, in the project `locus`, with the custom domain `locus.dontpanicv.com`:
+
+```bash
+npx wrangler login # once
+npm run deploy     # tests, build, then wrangler pages deploy public
+```
+
+On localhost the page first looks for the model under `models/<model id>/` and falls back to Hugging Face. To skip the download, for example for the evals, put the repo's files there, at least the config and tokenizer files and `onnx/*_q4f16.onnx*`. For a local build, load `extension/` unpacked from `chrome://extensions`. To host the site anywhere other than locus.dontpanicv.com, add its origin to `externally_connectable` in `extension/manifest.json`.
 
 ### Evals
 
@@ -116,7 +144,7 @@ Results go to `evals/results/`. The evals need Chrome at its usual path (or set 
 | `src/snapshot.js` | accessibility tree → snapshot with refs |
 | `extension/` | the Chrome extension (Manifest V3) |
 | `public/index.html` | the page and its styles |
-| `build.mjs` | static build, license file, extension zip |
+| `build.mjs` | static build, license file, font files, extension zip |
 | `server.mjs` | local static server for development and evals |
 | `evals/` | fake sites, tool checks, agent tasks |
 
@@ -131,5 +159,7 @@ The packages bundled into the site are listed with their license texts in `licen
 - `@huggingface/transformers` (Apache-2.0)
 - `onnxruntime-web` and `onnxruntime-common` (MIT)
 - `partial-json` (MIT)
+
+The Inter typeface is under the SIL Open Font License 1.1; its text is in `licenses.txt` too.
 
 `web_search` reads Bing's public results page from your browser; use it within Bing's terms.

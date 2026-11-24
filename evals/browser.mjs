@@ -10,7 +10,7 @@ const CHROME = process.env.CHROME ?? "/Applications/Google Chrome.app/Contents/M
 const EXTENSION = fileURLToPath(new URL("../extension", import.meta.url));
 
 export async function launch() {
-	const profile = mkdtempSync(join(tmpdir(), "local-agent-eval-"));
+	const profile = mkdtempSync(join(tmpdir(), "locus-eval-"));
 	const browser = await puppeteer.launch({
 		executablePath: CHROME,
 		headless: process.env.HEADFUL ? false : true,

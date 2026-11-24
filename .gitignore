@@ -3,7 +3,8 @@ models/
 public/app.js
 public/app.js.map
 public/licenses.txt
-public/local-agent-bridge.zip
+public/locus-bridge.zip
+public/fonts/
 evals/.build/
 evals/.cert/
 evals/results/

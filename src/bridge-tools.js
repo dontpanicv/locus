@@ -1,4 +1,4 @@
-// Tools that go through the Local Agent Bridge extension (../extension): tabs and web pages.
+// Tools that go through the Locus Bridge extension (../extension): tabs and web pages.
 // The extension only runs commands; parsing and trimming for the model happen here in the page.
 import { defineExtension, defineTool, GenerationTask, hook } from "@earendil-works/pi-durable";
 import { handsBack } from "./parse.js";
@@ -11,11 +11,11 @@ const MAX_CHARS = 6000;
 
 function call(command, args) {
 	return new Promise((resolve, reject) => {
-		if (!globalThis.chrome?.runtime?.sendMessage) return reject(new Error("The Local Agent Bridge extension is not installed"));
+		if (!globalThis.chrome?.runtime?.sendMessage) return reject(new Error("The Locus Bridge extension is not installed"));
 		chrome.runtime.sendMessage(EXTENSION_ID, { command, args }, (reply) => {
 			if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
 			// An older extension doesn't know newer commands; say what fixes it so the model stops retrying.
-			if (/^Unknown command/.test(reply?.error)) return reject(new Error("The Local Agent Bridge extension is out of date and can't do this. Tell the user to press reload on it at chrome://extensions, and don't call this tool again until then."));
+			if (/^Unknown command/.test(reply?.error)) return reject(new Error("The Locus Bridge extension is out of date and can't do this. Tell the user to press reload on it at chrome://extensions, and don't call this tool again until then."));
 			if (/No tab with (given )?id/i.test(reply?.error)) return reject(new Error(`Tab ${args?.tabId} is closed or does not exist; call list_tabs to see the open tabs.`));
 			if (reply?.error) return reject(new Error(reply.error));
 			resolve(reply?.result);
