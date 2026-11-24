@@ -107,11 +107,10 @@ npm run eval:agent # the real agent on 25 tasks (about 30 minutes); add words to
 
 ### Deploy
 
-The site is the `public/` folder on Cloudflare Pages, in the project `locus`, with the custom domain `locus.dontpanicv.com`:
+The site is the `public/` folder on Cloudflare Pages, in the project `locus`. The custom domain `locus.dontpanicv.com` is a proxied CNAME to the project's `pages.dev` address. To publish, sign in with `npx wrangler login` or set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then run:
 
 ```bash
-npx wrangler login # once
-npm run deploy     # tests, build, then wrangler pages deploy public
+npm run deploy # tests, build, then wrangler pages deploy public
 ```
 
 On localhost the page first looks for the model under `models/<model id>/` and falls back to Hugging Face. To skip the download, for example for the evals, put the repo's files there, at least the config and tokenizer files and `onnx/*_q4f16.onnx*`. For a local build, load `extension/` unpacked from `chrome://extensions`. To host the site anywhere other than locus.dontpanicv.com, add its origin to `externally_connectable` in `extension/manifest.json`.
